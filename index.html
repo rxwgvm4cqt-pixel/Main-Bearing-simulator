@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wälzlager Simulation</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#111111">
+
+<style>
+body { margin:0; background:#111; color:white; text-align:center; font-family:Arial; }
+canvas { background:#222; display:block; margin:auto; }
+button,input { margin:4px; padding:6px; }
+.info { margin-top:6px; }
+</style>
+</head>
+
+<body>
+
+<h3>Wälzlager Simulation</h3>
+<canvas id="c" width="380" height="380"></canvas><br>
+
+RPM <input id="rpm" type="number" value="60">
+Außen Ø (cm) <input id="outerD" type="number" value="300">
+Roller Ø (cm) <input id="rollerD" type="number" value="10">
+Roller Nr <input id="r" type="number" value="0" min="0" max="197">
+
+<br>
+
+<button onclick="startOuter()">Start Außenring</button>
+<button onclick="stopOuter()">Stop Außenring</button>
+<button onclick="startRoller()">Start Roller</button>
+<button onclick="stopRoller()">Stop Roller</button>
+<button onclick="toggleBoth()" id="bothBtn">Start Beide</button>
+<button onclick="resetAll()">Reset</button>
+
+<div class="info">
+Außenring Umdrehungen: <span id="outerTurns">0</span><br>
+Roller Umdrehungen: <span id="rollerTurns">0</span>
+</div>
+
+<script>
+var c=document.getElementById("c");
+var x=c.getContext("2d");
+
+var t=0;
+var dir=-1;
+var rollerCount=198;
+
+var outerRunning=false;
+var rollerRunning=false;
+
+var outerAngle=0;
+var rollerAngle=0;
+
+var outerStartTime=0;
+var rollerStartTime=0;
+
+function startOuter(){ outerStartTime = t; outerRunning = true; }
+function stopOuter(){ outerAngle = getOuterAngle(); outerRunning = false; }
+function startRoller(){ rollerStartTime = t; rollerRunning = true; }
+function stopRoller(){ rollerAngle = getRollerAngle(); rollerRunning = false; }
+
+function toggleBoth(){
+  if(!outerRunning && !rollerRunning){
+    outerStartTime = t;
+    rollerStartTime = t;
+    outerRunning = true;
+    rollerRunning = true;
+    document.getElementById("bothBtn").innerText="Stop Beide";
+  } else {
+    outerAngle = getOuterAngle();
+    rollerAngle = getRollerAngle();
+    outerRunning = false;
+    rollerRunning = false;
+    document.getElementById("bothBtn").innerText="Start Beide";
+  }
+}
+
+function resetAll(){
+  t=0; outerRunning=false; rollerRunning=false;
+  outerAngle=0; rollerAngle=0;
+  document.getElementById("bothBtn").innerText="Start Beide";
+  updateCounters(0,0);
+}
+
+function getOuterAngle(){
+  var rpm=+document.getElementById("rpm").value;
+  return outerAngle + dir*(t-outerStartTime)*rpm*2*Math.PI/60;
+}
+
+function getRollerAngle(){
+  var rpm=+document.getElementById("rpm").value;
+  var outerD=+document.getElementById("outerD").value;
+  var rollerD=+document.getElementById("rollerD").value;
+  var cageRPM = 0.5 * rpm * (1 - rollerD/outerD);
+  return rollerAngle + dir*(t-rollerStartTime)*cageRPM*2*Math.PI/60;
+}
+
+function updateCounters(outerA, rollerA){
+  document.getElementById("outerTurns").innerText = Math.abs(outerA/(2*Math.PI)).toFixed(2);
+  document.getElementById("rollerTurns").innerText = Math.abs(rollerA/(2*Math.PI)).toFixed(2);
+}
+
+function draw(){
+  t+=0.016;
+  x.clearRect(0,0,380,380);
+
+  var outerD=+document.getElementById("outerD").value || 1;
+  var rollerD=+document.getElementById("rollerD").value || 1;
+
+  var scale = outerD/300;
+  var outerR = 140*scale;
+  var innerR = 50*scale;
+  var orbitR = (outerR+innerR)/2;
+
+  var cx=190, cy=190;
+  var currentOuterAngle = outerRunning ? getOuterAngle() : outerAngle;
+  var currentRollerAngle = rollerRunning ? getRollerAngle() : rollerAngle;
+
+  updateCounters(currentOuterAngle, currentRollerAngle);
+
+  x.save();
+  x.translate(cx,cy);
+  x.rotate(currentOuterAngle);
+  x.strokeStyle="white";
+  x.beginPath();
+  x.arc(0,0,outerR,0,2*Math.PI);
+  x.stroke();
+  x.restore();
+
+  x.strokeStyle="white";
+  x.beginPath();
+  x.arc(cx,cy,innerR,0,2*Math.PI);
+  x.stroke();
+
+  requestAnimationFrame(draw);
+}
+draw();
+
+// Service Worker Registrierung
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
+</body>
+</html>
