@@ -19,6 +19,7 @@ button,input { margin:4px; padding:6px; }
 <body>
 
 <h3>Wälzlager Simulation</h3>
+
 <canvas id="c" width="380" height="380"></canvas><br>
 
 RPM <input id="rpm" type="number" value="60">
@@ -57,30 +58,33 @@ var rollerAngle=0;
 var outerStartTime=0;
 var rollerStartTime=0;
 
-function startOuter(){ outerStartTime = t; outerRunning = true; }
-function stopOuter(){ outerAngle = getOuterAngle(); outerRunning = false; }
-function startRoller(){ rollerStartTime = t; rollerRunning = true; }
-function stopRoller(){ rollerAngle = getRollerAngle(); rollerRunning = false; }
+function startOuter(){ outerStartTime=t; outerRunning=true; }
+function stopOuter(){ outerAngle=getOuterAngle(); outerRunning=false; }
+function startRoller(){ rollerStartTime=t; rollerRunning=true; }
+function stopRoller(){ rollerAngle=getRollerAngle(); rollerRunning=false; }
 
 function toggleBoth(){
   if(!outerRunning && !rollerRunning){
-    outerStartTime = t;
-    rollerStartTime = t;
-    outerRunning = true;
-    rollerRunning = true;
+    outerStartTime=t;
+    rollerStartTime=t;
+    outerRunning=true;
+    rollerRunning=true;
     document.getElementById("bothBtn").innerText="Stop Beide";
   } else {
-    outerAngle = getOuterAngle();
-    rollerAngle = getRollerAngle();
-    outerRunning = false;
-    rollerRunning = false;
+    outerAngle=getOuterAngle();
+    rollerAngle=getRollerAngle();
+    outerRunning=false;
+    rollerRunning=false;
     document.getElementById("bothBtn").innerText="Start Beide";
   }
 }
 
 function resetAll(){
-  t=0; outerRunning=false; rollerRunning=false;
-  outerAngle=0; rollerAngle=0;
+  t=0;
+  outerRunning=false;
+  rollerRunning=false;
+  outerAngle=0;
+  rollerAngle=0;
   document.getElementById("bothBtn").innerText="Start Beide";
   updateCounters(0,0);
 }
@@ -116,30 +120,78 @@ function draw(){
   var orbitR = (outerR+innerR)/2;
 
   var cx=190, cy=190;
+
   var currentOuterAngle = outerRunning ? getOuterAngle() : outerAngle;
   var currentRollerAngle = rollerRunning ? getRollerAngle() : rollerAngle;
 
-  updateCounters(currentOuterAngle, currentRollerAngle);
+  updateCounters(currentOuterAngle,currentRollerAngle);
 
+  // Außenring
   x.save();
   x.translate(cx,cy);
   x.rotate(currentOuterAngle);
+
   x.strokeStyle="white";
   x.beginPath();
   x.arc(0,0,outerR,0,2*Math.PI);
   x.stroke();
+
+  x.fillStyle="red";
+  x.beginPath();
+  x.arc(0,-outerR,6,0,2*Math.PI);
+  x.fill();
+
+  // A B C
+  x.fillStyle="cyan";
+  x.font="14px Arial";
+  x.textAlign="center";
+  x.textBaseline="middle";
+
+  var angles=[-Math.PI/2, -Math.PI/2+2*Math.PI/3, -Math.PI/2+4*Math.PI/3];
+  var labels=["A","B","C"];
+
+  for(var i=0;i<3;i++){
+    var ax=Math.cos(angles[i])*(outerR-15);
+    var ay=Math.sin(angles[i])*(outerR-15);
+    x.fillText(labels[i],ax,ay);
+  }
+
   x.restore();
 
+  // Innenring
   x.strokeStyle="white";
   x.beginPath();
   x.arc(cx,cy,innerR,0,2*Math.PI);
   x.stroke();
 
+  // Roller
+  var baseOffset=-5*Math.PI/6;
+  var tracked=+document.getElementById("r").value;
+
+  for(var i=0;i<rollerCount;i++){
+    var th=baseOffset+currentRollerAngle+i*(2*Math.PI/rollerCount);
+    var xx=cx+Math.cos(th)*orbitR;
+    var yy=cy+Math.sin(th)*orbitR;
+
+    x.fillStyle="orange";
+    x.beginPath();
+    x.arc(xx,yy,(rollerD/300)*70,0,2*Math.PI);
+    x.fill();
+
+    if(i===tracked){
+      x.fillStyle="red";
+      x.beginPath();
+      x.arc(xx,yy,(rollerD/300)*100,0,2*Math.PI);
+      x.fill();
+    }
+  }
+
   requestAnimationFrame(draw);
 }
+
 draw();
 
-// Service Worker Registrierung
+// Service Worker
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("service-worker.js");
 }
